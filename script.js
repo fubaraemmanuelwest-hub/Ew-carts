@@ -76,7 +76,7 @@ let cart = [];
 
 function formatPrice(price) {
 
-    return "₦" + price.toLocaleString("en-NG");
+return exchangeRate === null || !exchangeRateIsLive ? "USD price unavailable" : new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(price / exchangeRate);
 
 }
 
@@ -297,5 +297,80 @@ document.addEventListener("DOMContentLoaded", function() {
     displayProducts();
 
     updateCart();
+    loadExchangeRate().then(() => {
+
+    displayProducts();
+
+    updateCart();
 
 });
+
+});
+
+
+
+let exchangeRate = null;
+
+let exchangeRateIsLive = false;
+
+async function loadExchangeRate() {
+
+  try {
+
+    const response = await fetch("/.netlify/functions/exchange-rate");
+
+    if (!response.ok) {
+
+      throw new Error("Exchange rate unavailable");
+
+    }
+
+    const data = await response.json();
+
+    if (
+
+      typeof data.rate !== "number" ||
+
+      data.rate <= 0
+
+    ) {
+
+      throw new Error("Invalid exchange rate");
+
+    }
+
+    exchangeRate = data.rate;
+
+    exchangeRateIsLive = data.isLive === true;
+
+  } catch (error) {
+
+    console.error(error);
+
+    exchangeRate = 1500;
+
+    exchangeRateIsLive = false;
+
+  }
+
+}
+
+function formatProductPrice(priceInNaira) {
+
+  if (exchangeRate === null) {
+
+    return "Loading price...";
+
+  }
+
+  const priceInUSD = priceInNaira / exchangeRate;
+
+  return new Intl.NumberFormat("en-US", {
+
+    style: "currency",
+
+    currency: "USD"
+
+  }).format(priceInUSD);
+
+}
